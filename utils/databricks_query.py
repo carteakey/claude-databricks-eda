@@ -127,9 +127,17 @@ class DatabricksQueryClient:
         """
         query_upper = query.upper().strip()
 
-        # Only allow SELECT and safe SHOW statements
-        if not (query_upper.startswith('SELECT') or query_upper.startswith('SHOW')):
-            raise ValueError('Only SELECT and SHOW queries are allowed')
+        # Only allow SELECT, safe SHOW, DESCRIBE, and WITH (CTE) statements
+        if not (
+            query_upper.startswith("SELECT")
+            or query_upper.startswith("SHOW")
+            or query_upper.startswith("DESCRIBE")
+            or query_upper.startswith("DESC")
+            or query_upper.startswith("WITH")
+        ):
+            raise ValueError(
+                "Only SELECT, SHOW, DESCRIBE, and WITH queries are allowed"
+            )
 
         # If it's a SHOW statement, ensure it's a safe read-only SHOW command
         if query_upper.startswith("SHOW"):
@@ -150,6 +158,9 @@ class DatabricksQueryClient:
                 raise ValueError(
                     "Only safe read-only SHOW commands are allowed (TABLES, DATABASES, SCHEMAS, COLUMNS, etc.)"
                 )
+
+        # DESCRIBE/DESC statements are read-only metadata queries - always safe
+        # WITH clauses (CTEs) are followed by SELECT - validate the entire query doesn't contain dangerous patterns
 
         # Block dangerous statement patterns
         dangerous_patterns = [
