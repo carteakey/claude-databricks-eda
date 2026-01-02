@@ -1,0 +1,4 @@
+-[ ] Generate changelog file for curent changes and initial commit (today), not the analysis but the framework
+-[ ] Update the 01-sample notebook to be in line with the latest version of the codebase.
+-[ ] Move the airline sample temp code and docs to samples/airline-dataset-eda
+-[ ] Update the 01-sample notebook to be in line with the latest version of the codebase.
