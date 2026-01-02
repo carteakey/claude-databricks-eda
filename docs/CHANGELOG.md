@@ -20,3 +20,12 @@ This release establishes the foundation for interactive exploratory data analysi
 5. **Scalability** - Tested with billion-row datasets
 
 The initial release includes a complete sample analysis of the Databricks Airline Performance dataset (1.24B records) demonstrating all framework capabilities.
+
+### [0.1.1] - 2026-01-02
+
+#### Added
+- **Blogpost Documentation** - Added comprehensive workflow guide at `docs/BLOGPOST_EDA_WORKFLOW.md`
+  - Explains the AI-assisted EDA workflow using Claude, Copilot, or other agents
+  - Includes setup instructions, real-world examples, and best practices
+  - Documents the "volleying" workflow with practical examples
+  - Brief format (~800 words) for easy reading

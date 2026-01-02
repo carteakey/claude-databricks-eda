@@ -36,7 +36,7 @@ python3 utils/token_auth_setup.py --test-connection
 6. **Claude creates**: Final notebook `notebooks/XX-topic.ipynb` with all code + docs
 7. **You verify**: Run the notebook
 
-See [AGENTS.md](AGENTS.md) for details.
+See [AGENTS.md](AGENTS.md) for technical details or [docs/BLOGPOST_EDA_WORKFLOW.md](docs/BLOGPOST_EDA_WORKFLOW.md) for a comprehensive workflow guide.
 
 ## Project Structure
 
@@ -54,7 +54,8 @@ See [AGENTS.md](AGENTS.md) for details.
 ├── samples/
 │   └── airline-dataset-eda/  # Example analysis (1.24B records)
 └── docs/
-    └── TODO.md
+    ├── BLOGPOST_EDA_WORKFLOW.md      # Comprehensive workflow guide
+    └── CHANGELOG.md                   # Version history
 ```
 
 ## Using the Query Client
