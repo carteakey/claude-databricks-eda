@@ -1,159 +1,174 @@
 #!/usr/bin/env python3
 """
-01 - Initial Dataset Exploration
-=================================
+01 - Initial Dataset Exploration Template
+==========================================
 
-This script performs the initial exploration of the XX dataset to understand its structure, size, and key characteristics.
+This script provides a template for initial exploration of any Databricks dataset.
+Replace the table_name and customize queries as needed for your specific dataset.
 
-Based on the SQL file, this appears to be a renewal investigation dataset
-focusing on subscription renewals, expirations, and customer segments.
+Template demonstrates:
+- Connection testing
+- Basic row count and structure
+- Sample data preview
+- Column statistics
+- NULL value analysis
+- Data quality assessment
 """
 
-# Add utils to path for importing - use absolute path to avoid issues
 import os
 import sys
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
+# Add utils to path for importing - use absolute path to avoid issues
+project_root = Path(__file__).parent.parent.parent
+utils_path = project_root / "utils"
+sys.path.insert(0, str(utils_path))
 
-project_root = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-utils_path = os.path.join(project_root, "utils")
-sys.path.insert(0, utils_path)
-
-from databricks_query import DatabricksQueryClient, query_databricks
+from databricks_query import DatabricksQueryClient
 
 
 def main():
     """Explore the dataset structure and basic statistics."""
 
-    print("🔍 Dataset Initial Exploration")
-    print("=" * 50)
+    print("=" * 80)
+    print("Initial Dataset Exploration")
+    print("=" * 80)
 
     # Initialize client
     try:
-        client = DatabricksQueryClient(debug=True)
+        client = DatabricksQueryClient(debug=False)
         print("✅ Connected to Databricks")
     except Exception as e:
         print(f"❌ Failed to connect to Databricks: {e}")
         return
 
-    # First, let's check if the table exists and get basic info
-    table_name = "users.kartikey_chauhan.nar_renewal_investigation_2025_q3_mpd_ret_devices_ngm_v7"
+    # TODO: Replace with your table name
+    table_name = "catalog_name.schema_name.table_name"
 
     print(f"\n📊 Exploring table: {table_name}")
-    print("-" * 70)
+    print("-" * 80)
 
-    # 1. Check table structure by getting first row and examining columns
-    print("\n1️⃣ Getting table schema by examining first row...")
-    first_row_query = f"""
+    # 1. Get basic row count
+    print("\n1️⃣ Getting row count...")
+    query = f"""
+    SELECT COUNT(*) as total_rows
+    FROM {table_name}
+    """
+
+    try:
+        result = client.execute_query(query, "Row Count")
+        total = int(result["total_rows"].iloc[0])
+        print(f"   Total rows: {total:,}")
+    except Exception as e:
+        print(f"   ❌ Error: {e}")
+        return
+
+    # 2. Get table schema by examining first row
+    print("\n2️⃣ Getting table schema...")
+    query = f"""
     SELECT *
     FROM {table_name}
     LIMIT 1
     """
 
     try:
-        first_row = client.execute_query(first_row_query, "First Row for Schema")
-        print(f"✅ Table has {len(first_row.columns)} columns")
-        print("\nColumn Names:")
+        first_row = client.execute_query(query, "Schema Check")
+        print(f"   Table has {len(first_row.columns)} columns")
+        print("\n   Column Names:")
         for i, col in enumerate(first_row.columns, 1):
-            print(f"  {i:2d}. {col}")
+            dtype = first_row[col].dtype
+            print(f"     {i:2d}. {col:<30} ({dtype})")
     except Exception as e:
-        print(f"❌ Error getting schema: {e}")
-        return
-
-    # 2. Get basic row count and date ranges
-    print("\n2️⃣ Getting basic statistics...")
-    basic_stats_query = f"""
-    SELECT
-        COUNT(*) as total_rows,
-        COUNT(DISTINCT 9M_expiry_transaction_id) as unique_expiry_transactions,
-        COUNT(DISTINCT renewed_transaction_id) as unique_renewal_transactions,
-        MIN(9M_subscription_expiry_datetime) as earliest_expiry,
-        MAX(9M_subscription_expiry_datetime) as latest_expiry,
-        MIN(expiration_week) as earliest_expiration_week,
-        MAX(expiration_week) as latest_expiration_week
-    FROM {table_name}
-    """
-
-    try:
-        basic_stats = client.execute_query(basic_stats_query, "Basic Statistics")
-        print("\nDataset Overview:")
-        for col in basic_stats.columns:
-            print(f"  {col}: {basic_stats[col].iloc[0]}")
-    except Exception as e:
-        print(f"❌ Error getting basic stats: {e}")
+        print(f"   ❌ Error: {e}")
         return
 
     # 3. Sample data preview
     print("\n3️⃣ Sample data preview...")
-    sample_query = f"""
+    query = f"""
     SELECT *
     FROM {table_name}
     LIMIT 5
     """
 
     try:
-        sample_data = client.execute_query(sample_query, "Sample Data")
-        print(f"\nSample rows (showing first 10 columns):")
-        print(sample_data.iloc[:, :10].to_string(index=False))
+        sample = client.execute_query(query, "Sample Data")
+        print(f"\n   First 5 rows (showing first 5 columns):")
+        cols_to_show = min(5, len(sample.columns))
+        print(sample.iloc[:, :cols_to_show].to_string(index=False))
     except Exception as e:
-        print(f"❌ Error getting sample data: {e}")
-        return
+        print(f"   ❌ Error: {e}")
 
-    # 4. Check key dimensions
-    print("\n4️⃣ Exploring key dimensions...")
-    dimensions_query = f"""
+    # 4. Column-level statistics (customize based on your schema)
+    print("\n4️⃣ Getting basic statistics...")
+    # Example: Adjust column names as needed
+    query = f"""
     SELECT
-        COUNT(DISTINCT customer_type) as unique_customer_types,
-        COUNT(DISTINCT subscription_renewed_geo) as unique_geos,
-        COUNT(DISTINCT subscription_renewed_country) as unique_countries,
-        COUNT(DISTINCT subscription_renewed_channel) as unique_channels,
-        COUNT(DISTINCT renewal_transition_type) as unique_transition_types,
-        COUNT(DISTINCT 9M_subscription_expiry_package_name) as unique_expiry_packages,
-        COUNT(DISTINCT subscription_renewed_package_name) as unique_renewal_packages
+        COUNT(*) as total_records,
+        COUNT(DISTINCT id) as unique_ids
+        -- Add more column-specific stats here
     FROM {table_name}
     """
 
     try:
-        dimensions = client.execute_query(dimensions_query, "Key Dimensions")
-        print("\nDimensional Cardinality:")
-        for col in dimensions.columns:
-            print(f"  {col}: {dimensions[col].iloc[0]}")
+        stats = client.execute_query(query, "Basic Stats")
+        print("\n   Dataset Statistics:")
+        for col in stats.columns:
+            val = stats[col].iloc[0]
+            if isinstance(val, (int, float)):
+                print(f"     {col}: {val:,}")
+            else:
+                print(f"     {col}: {val}")
     except Exception as e:
-        print(f"❌ Error getting dimensions: {e}")
-        return
+        print(f"   ❌ Error: {e}")
 
-    # 5. Customer type breakdown
-    print("\n5️⃣ Customer type distribution...")
-    customer_type_query = f"""
+    # 5. Check for NULL values (customize column list)
+    print("\n5️⃣ NULL value analysis...")
+    # Example: Replace column names with your actual columns
+    query = f"""
     SELECT
-        customer_type,
-        COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
+        COUNT(*) as total_rows,
+        SUM(CASE WHEN column1 IS NULL THEN 1 ELSE 0 END) as null_column1,
+        SUM(CASE WHEN column2 IS NULL THEN 1 ELSE 0 END) as null_column2
+        -- Add more columns as needed
     FROM {table_name}
-    GROUP BY customer_type
-    ORDER BY count DESC
+    LIMIT 1000000
     """
 
     try:
-        customer_types = client.execute_query(customer_type_query, "Customer Types")
-        print("\nCustomer Type Distribution:")
-        print(customer_types.to_string(index=False))
+        nulls = client.execute_query(query, "NULL Analysis")
+        print("\n   NULL Value Counts (1M row sample):")
+        for col in nulls.columns:
+            val = nulls[col].iloc[0]
+            print(f"     {col}: {val:,}")
     except Exception as e:
-        print(f"❌ Error getting customer types: {e}")
-        return
+        print(f"   ❌ Error: {e}")
 
-    print("\n✅ Initial exploration completed!")
-    print("\n🎯 Key Insights from Initial Exploration:")
-    print("   - Dataset contains subscription renewal and expiry transaction data")
-    print("   - Multiple customer types and geographical dimensions available")
-    print("   - Time-series data with expiry weeks and renewal tracking")
-    print(
-        "   - Package transition analysis possible with expiry/renewal package fields"
-    )
+    # 6. Data quality summary
+    print("\n6️⃣ Data quality assessment...")
+    query = f"""
+    SELECT
+        COUNT(*) as total_records,
+        -- Add completeness checks for key columns
+        ROUND(COUNT(CASE WHEN column1 IS NOT NULL THEN 1 END) * 100.0 / COUNT(*), 2) as pct_complete_column1
+    FROM {table_name}
+    """
+
+    try:
+        quality = client.execute_query(query, "Data Quality")
+        print("\n   Data Quality Metrics:")
+        print(quality.to_string(index=False))
+    except Exception as e:
+        print(f"   ❌ Error: {e}")
+
+    print("\n" + "=" * 80)
+    print("Initial exploration complete!")
+    print("=" * 80)
+    print("\nNext steps:")
+    print("  1. Review the schema and adjust queries for your specific columns")
+    print("  2. Identify key dimensions and metrics to analyze")
+    print("  3. Create additional temp code files for deeper analysis")
+    print("  4. Use 'volley' workflow to iterate on findings")
+    print("  5. Run 'punch it' when ready to generate final notebook")
 
 
 if __name__ == "__main__":

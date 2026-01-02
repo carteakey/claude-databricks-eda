@@ -12,14 +12,16 @@ Usage:
     python token_auth_setup.py [--refresh-token] [--test-connection]
 """
 
-import os
+import argparse
+import configparser
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional, Dict
-import argparse
-import configparser
+from typing import Dict, Optional
+
+from dotenv import load_dotenv
 
 
 class DatabricksTokenSetup:
@@ -28,14 +30,18 @@ class DatabricksTokenSetup:
     def __init__(self, workspace_root: Optional[Path] = None):
         """Initialize with workspace root directory."""
         self.workspace_root = workspace_root or Path.cwd()
-        self.env_file = self.workspace_root / '.env'
-        self.venv_python = self.workspace_root / '.venv' / 'bin' / 'python'
-        self.venv_databricks = self.workspace_root / '.venv' / 'bin' / 'databricks'
+        self.env_file = self.workspace_root / ".env"
+        self.venv_python = self.workspace_root / ".venv" / "bin" / "python"
+        self.venv_databricks = self.workspace_root / ".venv" / "bin" / "databricks"
 
-        # Databricks connection details
-        self.host =
-        self.hostname =
-        self.http_path =
+        # Load existing .env file if it exists to get connection details
+        if self.env_file.exists():
+            load_dotenv(self.env_file, override=True)
+
+        # Databricks connection details - derive from .env
+        self.host = os.getenv("DATABRICKS_HOST", "")
+        self.hostname = os.getenv("DATABRICKS_SERVER_HOSTNAME", "")
+        self.http_path = os.getenv("DATABRICKS_HTTP_PATH", "")
 
     def check_databricks_cli(self) -> bool:
         """Check if Databricks CLI is available in the virtual environment."""
@@ -55,39 +61,55 @@ class DatabricksTokenSetup:
         return True
 
     def generate_oauth_token(self) -> bool:
-        """Generate OAuth token using Databricks CLI."""
+        """Generate OAuth token using Databricks CLI (modern auth login)."""
         print("🔑 Generating OAuth token using Databricks CLI...")
         print(f"   🔧 Virtual env databricks CLI: {self.venv_databricks}")
         print(f"   🔧 Virtual env exists: {self.venv_databricks.exists()}")
         print(f"   🔧 Host: {self.host}")
 
         try:
-            # Run databricks configure with OAuth
+            # Determine profile name from host
+            profile_name = (
+                self.host.replace("https://", "")
+                .replace(".cloud.databricks.com", "")
+                .replace("/", "_")
+            )
+
+            # Use modern 'databricks auth login' command
             cmd = [
                 str(self.venv_databricks),
-                "configure",
-                "--oauth",
-                "--host", self.host
+                "auth",
+                "login",
+                self.host,
+                "--profile",
+                profile_name,
             ]
 
             print(f"   🚀 Running: {' '.join(cmd)}")
-            print("   📝 This will open a browser window for OAuth authentication")
+            print(f"   📝 Profile name: {profile_name}")
+            print("   🌐 This will open a browser window for OAuth authentication")
             print("   ⏳ Waiting for OAuth completion...")
 
             result = subprocess.run(
                 cmd,
                 capture_output=False,  # Let user interact with browser
                 text=True,
-                timeout=300  # 5 minute timeout
+                timeout=300,  # 5 minute timeout
             )
 
-            print(f"   📊 OAuth process completed with return code: {result.returncode}")
+            print(
+                f"   📊 OAuth process completed with return code: {result.returncode}"
+            )
 
             if result.returncode == 0:
                 print("✅ OAuth configuration completed successfully")
+                # Store profile name for token extraction
+                self._profile_name = profile_name
                 return True
             else:
-                print(f"❌ OAuth configuration failed with return code: {result.returncode}")
+                print(
+                    f"❌ OAuth configuration failed with return code: {result.returncode}"
+                )
                 return False
 
         except subprocess.TimeoutExpired:
@@ -96,6 +118,65 @@ class DatabricksTokenSetup:
         except Exception as e:
             print(f"❌ Error during OAuth configuration: {e}")
             import traceback
+
+            print(f"   🔍 Traceback: {traceback.format_exc()}")
+            return False
+
+    def configure_with_token(self, token: str) -> bool:
+        """Configure Databricks CLI with a personal access token."""
+        print("🔑 Configuring Databricks CLI with personal access token...")
+        print(f"   🔧 Virtual env databricks CLI: {self.venv_databricks}")
+        print(f"   🔧 Host: {self.host}")
+
+        try:
+            # Determine profile name from host
+            profile_name = (
+                self.host.replace("https://", "")
+                .replace(".cloud.databricks.com", "")
+                .replace("/", "_")
+            )
+
+            # Use 'databricks configure' with token from stdin
+            cmd = [
+                str(self.venv_databricks),
+                "configure",
+                "--host",
+                self.host,
+                "--profile",
+                profile_name,
+            ]
+
+            print(f"   🚀 Running: {' '.join(cmd)}")
+            print(f"   📝 Profile name: {profile_name}")
+            print("   🔑 Configuring with token...")
+
+            result = subprocess.run(
+                cmd,
+                input=token,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+            if result.returncode == 0:
+                print("✅ Token configuration completed successfully")
+                self._profile_name = profile_name
+                return True
+            else:
+                print(
+                    f"❌ Token configuration failed with return code: {result.returncode}"
+                )
+                if result.stderr:
+                    print(f"   Error: {result.stderr}")
+                return False
+
+        except subprocess.TimeoutExpired:
+            print("❌ Configuration timed out")
+            return False
+        except Exception as e:
+            print(f"❌ Error during configuration: {e}")
+            import traceback
+
             print(f"   🔍 Traceback: {traceback.format_exc()}")
             return False
 
@@ -104,12 +185,12 @@ class DatabricksTokenSetup:
         print("🔍 Extracting token from Databricks configuration...")
 
         # Check home directory and config file location
-        databricks_cfg_path = Path.home() / '.databrickscfg'
+        databricks_cfg_path = Path.home() / ".databrickscfg"
         print(f"   📁 Home directory: {Path.home()}")
         print(f"   📄 Config file path: {databricks_cfg_path}")
         print(f"   📄 Config file exists: {databricks_cfg_path.exists()}")
 
-        # Fallback: try to read from config file
+        # Try to read from config file
         try:
             if databricks_cfg_path.exists():
                 print(f"   📖 Reading config file: {databricks_cfg_path}")
@@ -118,21 +199,36 @@ class DatabricksTokenSetup:
 
                 print(f"   📋 Found sections: {list(config.sections())}")
 
-                # Look for the profile matching our host
+                # First, try to use the profile name if we set one
+                if (
+                    hasattr(self, "_profile_name")
+                    and self._profile_name in config.sections()
+                ):
+                    section = config[self._profile_name]
+                    token = section.get("token")
+                    if token:
+                        print(f"   🎯 Found token in profile: {self._profile_name}")
+                        print(f"   🔑 Token length: {len(token)} characters")
+                        print(f"   🔑 Token preview: {token[:20]}...")
+                        return token
+
+                # Otherwise, look for the profile matching our host
                 for section_name in config.sections():
                     section = config[section_name]
-                    section_host = section.get('host')
+                    section_host = section.get("host")
                     print(f"   🔍 Section '{section_name}': host='{section_host}'")
 
                     # Normalize hosts by removing trailing slashes for comparison
-                    normalized_section_host = section_host.rstrip('/') if section_host else None
-                    normalized_target_host = self.host.rstrip('/')
+                    normalized_section_host = (
+                        section_host.rstrip("/") if section_host else None
+                    )
+                    normalized_target_host = self.host.rstrip("/")
 
                     print(f"   🔍 Normalized section host: '{normalized_section_host}'")
                     print(f"   🔍 Normalized target host: '{normalized_target_host}'")
 
                     if normalized_section_host == normalized_target_host:
-                        token = section.get('token')
+                        token = section.get("token")
                         print(f"   🎯 Found matching section: {section_name}")
                         print(f"   🔑 Token present: {bool(token)}")
                         if token:
@@ -149,6 +245,7 @@ class DatabricksTokenSetup:
         except Exception as e:
             print(f"⚠️  Could not read from .databrickscfg: {e}")
             import traceback
+
             print(f"   🔍 Traceback: {traceback.format_exc()}")
 
         print("❌ Could not extract access token")
@@ -165,11 +262,11 @@ class DatabricksTokenSetup:
             env_content = {}
             if self.env_file.exists():
                 print("   📖 Reading existing .env file...")
-                with open(self.env_file, 'r') as f:
+                with open(self.env_file, "r") as f:
                     for line_num, line in enumerate(f, 1):
                         line = line.strip()
-                        if line and not line.startswith('#') and '=' in line:
-                            key, value = line.split('=', 1)
+                        if line and not line.startswith("#") and "=" in line:
+                            key, value = line.split("=", 1)
                             env_content[key] = value
                             print(f"     Line {line_num}: {key}=<value>")
                 print(f"   📋 Found {len(env_content)} existing environment variables")
@@ -178,16 +275,16 @@ class DatabricksTokenSetup:
 
             # Update with new values
             new_values = {
-                'DATABRICKS_HOST': self.host,
-                'DATABRICKS_SERVER_HOSTNAME': self.hostname,
-                'DATABRICKS_HTTP_PATH': self.http_path,
-                'DATABRICKS_ACCESS_TOKEN': access_token,
-                'DATABRICKS_AUTH_TYPE': 'token'  # Changed from oauth-u2m to token
+                "DATABRICKS_HOST": self.host,
+                "DATABRICKS_SERVER_HOSTNAME": self.hostname,
+                "DATABRICKS_HTTP_PATH": self.http_path,
+                "DATABRICKS_ACCESS_TOKEN": access_token,
+                "DATABRICKS_AUTH_TYPE": "token",  # Changed from oauth-u2m to token
             }
 
             print("   🔄 Updating with new values:")
             for key, value in new_values.items():
-                if key == 'DATABRICKS_ACCESS_TOKEN':
+                if key == "DATABRICKS_ACCESS_TOKEN":
                     print(f"     {key}=<token_{len(value)}_chars>")
                 else:
                     print(f"     {key}={value}")
@@ -196,7 +293,7 @@ class DatabricksTokenSetup:
 
             # Write back to .env file
             print(f"   💾 Writing {len(env_content)} variables to .env file...")
-            with open(self.env_file, 'w') as f:
+            with open(self.env_file, "w") as f:
                 for key, value in env_content.items():
                     f.write(f"{key}={value}\n")
 
@@ -206,6 +303,7 @@ class DatabricksTokenSetup:
         except Exception as e:
             print(f"❌ Error updating .env file: {e}")
             import traceback
+
             print(f"   🔍 Traceback: {traceback.format_exc()}")
             return False
 
@@ -260,7 +358,9 @@ class DatabricksTokenSetup:
                 print("   ❌ Failed to generate OAuth token")
                 return False
         else:
-            print("   ⏭️  Skipping token generation (env file exists and refresh not requested)")
+            print(
+                "   ⏭️  Skipping token generation (env file exists and refresh not requested)"
+            )
 
         # Extract token
         print("3️⃣  Extracting token from configuration...")
@@ -283,19 +383,45 @@ class DatabricksTokenSetup:
 
 def main():
     """Main CLI interface."""
-    parser = argparse.ArgumentParser(description="Setup Databricks token-based authentication")
-    parser.add_argument('--refresh-token', action='store_true',
-                       help='Force refresh of OAuth token')
-    parser.add_argument('--test-connection', action='store_true',
-                       help='Test connection after setup')
-    parser.add_argument('--workspace', type=Path,
-                       help='Workspace root directory (default: current directory)')
+    parser = argparse.ArgumentParser(
+        description="Setup Databricks token-based authentication"
+    )
+    parser.add_argument(
+        "--refresh-token", action="store_true", help="Force refresh of OAuth token"
+    )
+    parser.add_argument(
+        "--test-connection", action="store_true", help="Test connection after setup"
+    )
+    parser.add_argument(
+        "--workspace",
+        type=Path,
+        help="Workspace root directory (default: current directory)",
+    )
+    parser.add_argument(
+        "--token",
+        type=str,
+        help="Personal access token from Databricks dashboard",
+    )
 
     args = parser.parse_args()
 
     setup = DatabricksTokenSetup(workspace_root=args.workspace)
 
-    success = setup.setup_token_auth(refresh_token=args.refresh_token)
+    # If token provided, configure with it directly
+    if args.token:
+        print("🔑 Configuring with provided personal access token...")
+        if setup.configure_with_token(args.token):
+            # Update .env file with the token
+            if setup.update_env_file(args.token):
+                print("✅ Token configuration complete!")
+                success = True
+            else:
+                success = False
+        else:
+            success = False
+    else:
+        # Otherwise use OAuth flow
+        success = setup.setup_token_auth(refresh_token=args.refresh_token)
 
     if success and args.test_connection:
         setup.test_connection()
@@ -303,5 +429,5 @@ def main():
     return 0 if success else 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
