@@ -43,14 +43,16 @@ See [AGENTS.md](AGENTS.md) for technical details or [docs/BLOGPOST_EDA_WORKFLOW.
 ```
 .
 ├── .env                    # Your credentials (DO NOT COMMIT)
-├── pyproject.toml          # uv dependencies
-├── requirements.txt        # pip fallback
+├── CHANGELOG.md            # Version history
+├── AGENTS.md               # Volley workflow guide
 ├── utils/
-│   ├── databricks_query.py # Query client (supports SELECT, SHOW, DESCRIBE, WITH)
+│   ├── databricks_query.py # Query client
 │   └── token_auth_setup.py # Token management
 ├── notebooks/
 │   ├── temp_code/          # Volleying code goes here
 │   └── *.ipynb            # Final notebooks
+├── samples/
+│   └── airline-dataset-eda/  # Example analysis (1.24B records)
 └── docs/
     ├── BLOGPOST_EDA_WORKFLOW.md      # Comprehensive workflow guide
     └── CHANGELOG.md                   # Version history
@@ -59,14 +61,15 @@ See [AGENTS.md](AGENTS.md) for technical details or [docs/BLOGPOST_EDA_WORKFLOW.
 ## Using the Query Client
 
 ```python
-from utils.databricks_query import query_databricks
+from databricks_query import DatabricksQueryClient
 
-df = query_databricks("""
+client = DatabricksQueryClient(debug=False)
+df = client.execute_query("""
     SELECT manufacturer, COUNT(*) as count
     FROM my_table
     WHERE date >= '2025-08-01'
     GROUP BY manufacturer
-""", query_name="Manufacturer Count")
+""", "Manufacturer Count")
 
 print(df)
 ```
@@ -103,6 +106,13 @@ echo "sql" | python3 utils/token_auth_setup.py --refresh-token
 ```python
 df['col'] = pd.to_numeric(df['col'], errors='coerce')
 ```
+
+## Sample Analysis
+
+See `samples/airline-dataset-eda/` for a complete example:
+- 1.24B flight records (1987-2008)
+- Full EDA with comprehensive report
+- Demonstrates volley workflow
 
 ## Using as a Template
 
