@@ -36,7 +36,7 @@ python3 utils/token_auth_setup.py --test-connection
 6. **Claude creates**: Final notebook `notebooks/XX-topic.ipynb` with all code + docs
 7. **You verify**: Run the notebook
 
-See [docs/eda-volleying-with-claude.md](docs/eda-volleying-with-claude.md) for details.
+See [AGENTS.md](AGENTS.md) for technical details or [docs/BLOGPOST_EDA_WORKFLOW.md](docs/BLOGPOST_EDA_WORKFLOW.md) for a comprehensive workflow guide.
 
 ## Project Structure
 
@@ -52,7 +52,8 @@ See [docs/eda-volleying-with-claude.md](docs/eda-volleying-with-claude.md) for d
 │   ├── temp_code/          # Volleying code goes here
 │   └── *.ipynb            # Final notebooks
 └── docs/
-    └── eda-volleying-with-claude.md  # Workflow guide
+    ├── BLOGPOST_EDA_WORKFLOW.md      # Comprehensive workflow guide
+    └── CHANGELOG.md                   # Version history
 ```
 
 ## Using the Query Client
