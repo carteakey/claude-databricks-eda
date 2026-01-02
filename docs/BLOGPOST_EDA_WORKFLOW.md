@@ -39,7 +39,7 @@ cp .env.template .env
 uv venv && source .venv/bin/activate && uv sync
 
 # Test connection
-python3 utils/token_auth_setup.py --test-connection
+python utils/token_auth_setup.py --test-connection
 ```
 
 ### 2. Start Volleying
@@ -193,5 +193,4 @@ You can explore data faster, with better documentation, and more confidence.
 ---
 
 **Project**: [carteakey/claude-databricks-eda](https://github.com/carteakey/claude-databricks-eda)  
-**Author**: Akshay Karthik  
-**License**: MIT (inferred)
+**Author**: Akshay Karthik
