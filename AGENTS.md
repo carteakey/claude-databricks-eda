@@ -1,18 +1,21 @@
 # Volleying with Claude Code for Data Analytics EDA
 
-## approach
-- when I say "volley" I want claude code to use the tools in utils/ to run queries in databricks, look at the returned data, try to understand it, including any gaps in what we thought it would have returned, reason with it and show me the output and its reasoning
-- Before starting refresh the token by running token auth setup with refresh-token param.
-- I want you to be less VERBOSE. More noise means less focus. Lets be more concise in all aspects especially documentation and visualizations. They need to be more concise and focused.
-```
-echo "sql" | python3 utils/token_auth_setup.py --refresh-token
-```
+**Adherence to these rules is mandatory, ALWAYS check this file and follow these rules.**
 
+## approach
+- when I say "volley" I want you to use the tools in utils/ to run queries in databricks, look at the returned data, try to understand it, including any gaps in what we thought it would have returned, reason with it and show me the output and its reasoning
+- Before starting test the token connection. If it doesnt work then refresh the token by running token auth setup with refresh-token param.
 - Test connection and then start. No alarms and no surprises.
 ```
 python3 utils/token_auth_setup.py --test-connection
 ```
-- Copilot can put this temp code in notebooks/temp_code/[0-9]{2}
+```
+echo "sql" | python3 utils/token_auth_setup.py --refresh-token
+```
+
+- I want you to be less VERBOSE. More noise means less focus. Lets be more concise in all aspects especially documentation and visualizations. They need to be more concise and focused.
+
+- you can put this temp code in notebooks/temp_code/[0-9]{2}
 -<filename>.py files where the first two digits match the notebook prefix we will be working on
 - Sample code is present in temp_code directory to make things easier  (01-initial_dataset_exploration.py)
 - i would then ask it to try a few things based on the data returned and it would write more temp code..
@@ -41,7 +44,7 @@ from databricks_query import DatabricksQueryClient, query_databricks
 
 
 ## quality assurance step
-- after creating the notebook, Copilot should use jupytext to convert it to .py format and run the .py version to check for errors
+- after creating the notebook, you should use jupytext to convert it to .py format and run the .py version to check for errors
 - common issues to fix:
     - **path issues for Python scripts**: use `Path(__file__).parent.parent / 'utils'` for .py files
     - **path issues for Jupyter notebooks**: use `Path.cwd().parent / 'utils'` for .ipynb files (since `__file__` is not available in notebooks)
@@ -55,6 +58,37 @@ from databricks_query import DatabricksQueryClient, query_databricks
 
 ## common jupytext issues to watch for
 - **duplicate cells**: jupytext conversion may create multiple import cells, remove duplicates
-- **markdown cells with code**: code aCopilotidentally placed in markdown cells instead of code cells
+- **markdown cells with code**: code accidentally placed in markdown cells instead of code cells
 - **mixed path types**: some cells may still have `__file__` while others have `cwd()` - ensure consistency
 - **always validate**: run `grep` commands to verify all `__file__` references are removed from the final notebook
+
+
+## 📋 PRE-EDIT CHECKLIST
+
+---
+## 🧭 Guiding Principles
+1. **Simplicity First**: Use a minimal approach. Avoid unnecessary complexity, libraries, or build tools.
+---
+## ⚠️ Prohibited Practices
+---
+
+## 🔄 Version Control & Commit Workflow
+This project uses a manual versioning process. It is your responsibility to keep it accurate.
+**Manual Workflow:**
+1. **Code**: Make your changes following all guidelines.
+2. **Test**: Thoroughly test your changes in-browser. Check for console errors and verify all functionality. 
+3. **Update `docs/CHANGELOG.md`**:
+  * Add a new entry under the current date.
+  * Use SemVer headings and clear sections `Added`, `Changed`, `Fixed`.
+```
+## [1.2.3] - 2025-09-11
+### Added
+- video.js: keyboard shortcut “K” for pause
+```
+4. **Commit**: Write a short, descriptive commit message (e.g., `fix(nav): correct mobile layout overlap`).
+**Pre-commit checklist:**
+* Notebook tested, no console errors.
+* `versions.json` bumped correctly.
+* `docs/CHANGELOG.md` updated.
+
+5. Update the docs/TODO.md file if you added or fixed something that should be noted there.
