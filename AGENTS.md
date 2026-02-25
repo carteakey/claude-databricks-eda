@@ -1,16 +1,18 @@
 # Volleying with Claude Code for Data Analytics EDA
 
 ## approach
-- when I say "volley" I want claude code to use the tools in utils/ to run queries in databricks, look at the returned data, try to understand it, including any gaps in what we thought it would have returned, reason with it and show me the output and its reasoning
+- when I say "volley" I want claude code to use the tools in databricks_eda/ to run queries in databricks, look at the returned data, try to understand it, including any gaps in what we thought it would have returned, reason with it and show me the output and its reasoning
 - Before starting refresh the token by running token auth setup with refresh-token param.
 
 ```
-echo "sql" | python3 utils/token_auth_setup.py --refresh-token
+databricks-eda-setup --refresh-token
+# or: python -m databricks_eda.token_auth_setup --refresh-token
 ```
 
 - Test connection and then start. No alarms and no surprises.
 ```
-python3 utils/token_auth_setup.py --test-connection
+databricks-eda-setup --test-connection
+# or: python -m databricks_eda.token_auth_setup --test-connection
 ```
 - Copilot can put this temp code in notebooks/temp_code/[0-9]{2}
 -<filename>.py files where the first two digits match the notebook prefix we will be working on
@@ -29,29 +31,19 @@ python3 utils/token_auth_setup.py --test-connection
 - I would execute the notebook and confirm all is working and this would be the end of the specific EDA cycle
 
 - Sample
-```
-# Add utils to path for importing - use absolute path to avoid issues
-import os
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-utils_path = os.path.join(project_root, 'utils')
-sys.path.insert(0, utils_path)
-
-from databricks_query import DatabricksQueryClient, query_databricks
+```python
+from databricks_eda import DatabricksQueryClient, query_databricks
 ```
 
 
 ## quality assurance step
 - after creating the notebook, Copilot should use jupytext to convert it to .py format and run the .py version to check for errors
 - common issues to fix:
-    - **path issues for Python scripts**: use `Path(__file__).parent.parent / 'utils'` for .py files
-    - **path issues for Jupyter notebooks**: use `Path.cwd().parent / 'utils'` for .ipynb files (since `__file__` is not available in notebooks)
+    - **path issues**: since the package is installed (`pip install -e .`), use `from databricks_eda import ...` directly — no path manipulation needed
     - **data type issues**: pandas DataFrames from Databricks may return object/string types, use `pd.to_numeric()` for calculations
     - **import issues**: ensure all required libraries are properly imported
-- **CRITICAL**: after fixing errors in the .py version, manually update the notebook to use notebook-compatible paths (`Path.cwd().parent / 'utils'`)
-- **VERIFY ALL CELLS**: check the entire notebook for ANY remaining `__file__` references - jupytext may create duplicate cells or leave problematic code in markdown cells
-- use `grep -n "__file__" notebooks/filename.ipynb` to verify no remaining instances
-- this ensures both the .py script works for testing AND the notebook works correctly when the user executes it
-- **remember**: `.py` scripts need `__file__` paths, `.ipynb` notebooks need `cwd()` paths
+- **CRITICAL**: since `databricks_eda` is installed as a package, both `.py` scripts and `.ipynb` notebooks use the same import: `from databricks_eda import ...`
+- **VERIFY ALL CELLS**: check the entire notebook for ANY remaining `sys.path` or `__file__` path hacks — they should not be needed anymore
 
 ## common jupytext issues to watch for
 - **duplicate cells**: jupytext conversion may create multiple import cells, remove duplicates

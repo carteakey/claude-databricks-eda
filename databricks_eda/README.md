@@ -16,7 +16,7 @@ A secure, reusable REST-based library for executing SQL queries on Databricks wi
 ### Simple Usage (Convenience Functions)
 
 ```python
-from utils.databricks_query import query_databricks, test_databricks_connection
+from databricks_eda import query_databricks, test_databricks_connection
 
 # Test connection
 if test_databricks_connection():
@@ -33,7 +33,7 @@ print(df.head())
 ### Advanced Usage (Client Instance)
 
 ```python
-from utils.databricks_query import DatabricksQueryClient
+from databricks_eda import DatabricksQueryClient
 
 # Create client with debug logging
 client = DatabricksQueryClient(debug=True)
@@ -52,7 +52,7 @@ if client.test_connection():
 ### Steve's WPS Profile Query
 
 ```python
-from utils.databricks_query import query_databricks
+from databricks_eda import query_databricks
 
 # Query WPS profile data
 wps_query = '''
@@ -73,7 +73,7 @@ print(df.head())
 ### Error Handling
 
 ```python
-from utils.databricks_query import DatabricksQueryClient
+from databricks_eda import DatabricksQueryClient
 
 client = DatabricksQueryClient()
 
@@ -92,10 +92,10 @@ except RuntimeError as e:
 
 ## Configuration
 
-The utility automatically looks for `.env` files in these locations:
+The utility automatically looks for `.env` files in these locations (in order):
 1. Path specified in constructor
-2. `../../../.env` (relative to current directory)
-3. `/Users/oansari/code/mcafee-eng/cpe-analytics/.env` (absolute fallback)
+2. Current working directory
+3. One, two, or three parent directories above cwd
 
 Required environment variables:
 - `DATABRICKS_ACCESS_TOKEN`
@@ -113,7 +113,7 @@ The utility blocks these dangerous SQL patterns:
 - `ALTER TABLE/VIEW/DATABASE/SCHEMA`
 - `TRUNCATE TABLE`
 
-Only `SELECT` statements are allowed.
+Only `SELECT`, `SHOW`, `DESCRIBE`, and `WITH` (CTEs) statements are allowed.
 
 ## API Reference
 
@@ -134,9 +134,9 @@ Only `SELECT` statements are allowed.
 
 ## Testing
 
-Run the test suite:
+Test connection:
 ```bash
-python utils/test_utility.py
+databricks-eda-setup --test-connection
 ```
 
 This tests:

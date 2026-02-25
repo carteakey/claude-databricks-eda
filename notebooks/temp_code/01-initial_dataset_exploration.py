@@ -15,13 +15,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-# Add utils to path for importing - use absolute path to avoid issues
-import os
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-utils_path = os.path.join(project_root, 'utils')
-sys.path.insert(0, utils_path)
-
-from databricks_query import DatabricksQueryClient, query_databricks
+from databricks_eda import DatabricksQueryClient, query_databricks
 
 def main():
     """Explore the dataset structure and basic statistics."""

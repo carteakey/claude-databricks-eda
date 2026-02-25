@@ -47,19 +47,12 @@ class DatabricksQueryClient:
         if env_path:
             env_paths = [Path(env_path)]
         else:
-            # Try multiple common locations (add repo root first)
+            # Try multiple common locations (repo root first, then parent dirs)
             env_paths = [
-                Path.cwd()
-                / ".env",  # Repository root when running scripts from project
-                Path.cwd().parent / ".env",  # One level up (e.g., when inside utils/)
-                Path.cwd().parent.parent
-                / ".env",  # Two levels up (e.g., from notebooks/temp_code)
-                Path.cwd().parent.parent.parent
-                / ".env",  # Original notebook context attempt
-                Path("..") / ".." / ".." / ".env",  # Relative path fallback
-                Path(
-                    "/Users/kchauhan/repos/ngm_dataset_eda_v2/.env"
-                ),  # Absolute fallback (legacy)
+                Path.cwd() / ".env",  # Repository root when running from project
+                Path.cwd().parent / ".env",  # One level up (e.g., inside databricks_eda/)
+                Path.cwd().parent.parent / ".env",  # Two levels up (e.g., notebooks/temp_code)
+                Path.cwd().parent.parent.parent / ".env",  # Three levels up
             ]
 
         loaded = False

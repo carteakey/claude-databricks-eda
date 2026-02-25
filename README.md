@@ -17,13 +17,10 @@ cp .env.template .env
 uv venv && source .venv/bin/activate && uv sync
 # Or: python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 
-# 4. Configure Databricks CLI (if needed)
-export DATABRICKS_CLI_DO_NOT_EXECUTE_NEWER_VERSION=1
-./.venv/bin/databricks configure --oauth --host https://${DATABRICKS_SERVER_HOSTNAME}
-
-# 5. Refresh token and test
-echo "sql" | python3 utils/token_auth_setup.py --refresh-token
-python3 utils/token_auth_setup.py --test-connection
+# 4. Authenticate with Databricks
+# Install Go-based Databricks CLI if needed: brew install databricks/tap/databricks
+databricks-eda-setup --refresh-token   # opens browser for OAuth
+databricks-eda-setup --test-connection # verify
 ```
 
 ## The Volleying Workflow
@@ -45,9 +42,9 @@ See [docs/eda-volleying-with-claude.md](docs/eda-volleying-with-claude.md) for d
 ├── .env                    # Your credentials (DO NOT COMMIT)
 ├── pyproject.toml          # uv dependencies
 ├── requirements.txt        # pip fallback
-├── utils/
+├── databricks_eda/
 │   ├── databricks_query.py # Query client (supports SELECT, SHOW, DESCRIBE, WITH)
-│   └── token_auth_setup.py # Token management
+│   └── token_auth_setup.py # Token management (also: databricks-eda-setup CLI)
 ├── notebooks/
 │   ├── temp_code/          # Volleying code goes here
 │   └── *.ipynb            # Final notebooks
@@ -58,7 +55,7 @@ See [docs/eda-volleying-with-claude.md](docs/eda-volleying-with-claude.md) for d
 ## Using the Query Client
 
 ```python
-from utils.databricks_query import query_databricks
+from databricks_eda import query_databricks
 
 df = query_databricks("""
     SELECT manufacturer, COUNT(*) as count
@@ -84,18 +81,9 @@ print(df)
 
 ## Common Issues
 
-**Path errors in notebooks:**
-```python
-# For .py scripts:
-sys.path.insert(0, str(Path(__file__).parent.parent / 'utils'))
-
-# For .ipynb notebooks:
-sys.path.insert(0, str(Path.cwd().parent / 'utils'))
-```
-
 **Token expired:**
 ```bash
-echo "sql" | python3 utils/token_auth_setup.py --refresh-token
+databricks-eda-setup --refresh-token
 ```
 
 **Data type issues:**
