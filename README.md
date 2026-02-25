@@ -101,6 +101,44 @@ cp .env.template .env
 # Edit .env, then: uv sync
 ```
 
+## MCP Server vs This Tool
+
+There are two ways to give Claude access to Databricks: a local MCP server (like [`adhoc`](../adhoc)) or this EDA tool. They solve different problems.
+
+### How the MCP approach works
+The MCP server runs as a local HTTP process (`fastmcp run ... --port 5555`). Claude calls a single tool — `fetch_data(query)` — which returns CSV. Claude gets the data and reasons about it in context. You never see code written; the SQL exists only in the conversation.
+
+### How this tool works
+Claude writes actual Python files (`notebooks/temp_code/`), executes them, shows you the output and its reasoning, iterates, then compiles everything into a documented Jupyter notebook.
+
+### Side-by-side
+
+| | MCP Server (`adhoc`) | This EDA Tool |
+|---|---|---|
+| **Code visibility** | None — SQL lives in the chat | Full — Python files written to disk |
+| **Reproducibility** | None — conversation disappears | Jupyter notebooks you can re-run |
+| **Output** | CSV string returned to Claude | pandas DataFrames + saved notebooks |
+| **SQL safety** | Any SQL, including writes | Read-only enforced (SELECT/SHOW/DESCRIBE) |
+| **Connection** | SQLAlchemy pool (persistent process) | REST API per-query (no server to manage) |
+| **Setup overhead** | Run a server, register with Claude | Just `uv sync` + `.env` |
+| **Token refresh** | Manual | `databricks-eda-setup --refresh-token` |
+
+### When to use the MCP server
+- Quick one-off questions: "how many rows in this table?", "what columns does X have?"
+- Conversational data lookup during normal work
+- You want Claude to pull data as part of a broader task (writing a doc, answering a question)
+- You don't need to keep the analysis
+
+### When to use this tool
+- You're doing a structured EDA that will produce a deliverable
+- You want the queries and code to be visible, editable, and version-controlled
+- You need a reproducible notebook someone else can run
+- You're iterating deeply on a dataset and want to track your reasoning
+- The analysis matters enough to document
+
+### The short version
+**MCP = Claude uses data. This tool = Claude and you build something together.**
+
 ---
 
 **That's it. Clone, setup .env, start volleying with Claude.**
