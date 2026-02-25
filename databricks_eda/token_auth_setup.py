@@ -133,7 +133,11 @@ class DatabricksTokenSetup:
     # ------------------------------------------------------------------
 
     def extract_token(self) -> Optional[str]:
-        """Extract access token using the Databricks SDK Config."""
+        """Extract access token using the Databricks SDK Config.authenticate().
+
+        Works for all auth types (PAT, OAuth U2M, service principal, etc.)
+        by asking the SDK to produce a live Authorization header.
+        """
         try:
             from databricks.sdk.config import Config  # type: ignore[import]
         except ImportError:
@@ -143,20 +147,29 @@ class DatabricksTokenSetup:
         if not self.host:
             return None
 
-        print(f"🔍 Reading credentials for {self.host} via databricks-sdk...")
+        print(f"🔍 Obtaining token for {self.host} via databricks-sdk...")
+        # Temporarily clear stale env vars so the SDK reads from ~/.databrickscfg
+        # or other credential sources rather than being locked to PAT-only auth.
+        conflicting = ["DATABRICKS_AUTH_TYPE", "DATABRICKS_ACCESS_TOKEN"]
+        saved = {k: os.environ.pop(k) for k in conflicting if k in os.environ}
         try:
             config = Config(host=self.host)
-            token = config.token
-            if token:
-                print(f"✅ Token found ({len(token)} chars).")
+            headers = config.authenticate()  # Returns {"Authorization": "Bearer <token>"}
+            auth = headers.get("Authorization", "")
+            if auth.startswith("Bearer "):
+                token = auth[len("Bearer "):]
+                print(f"✅ Token obtained ({len(token)} chars).")
                 return token
             else:
-                print("⚠️  SDK returned no token for this host.")
+                print("⚠️  SDK could not produce a Bearer token for this host.")
                 print("   Make sure ~/.databrickscfg has an entry for this host,")
                 print("   or run: databricks auth login --host <your-host>")
                 return None
         except Exception as exc:
-            print(f"❌ Could not read token from SDK: {exc}")
+            print(f"❌ Could not obtain token from SDK: {exc}")
+            return None
+        finally:
+            os.environ.update(saved)
             return None
 
     # ------------------------------------------------------------------
@@ -225,9 +238,9 @@ class DatabricksTokenSetup:
     # Main flow
     # ------------------------------------------------------------------
 
-    def setup_token_auth(self, refresh_token: bool = False) -> bool:
-        """Run the full auth setup flow."""
-        print("🚀 Databricks authentication setup")
+    def refresh_and_store_token(self) -> bool:
+        """Run OAuth login, extract a fresh token, and write it to .env."""
+        print("🚀 Databricks token refresh")
         print(f"   Workspace: {self.workspace_root}")
         print(f"   Env file:  {self.env_file}")
         print()
@@ -235,10 +248,9 @@ class DatabricksTokenSetup:
         if not self._ensure_credentials_in_env():
             return False
 
-        if refresh_token:
-            print("🔄 Refreshing token via OAuth browser login...")
-            if not self.run_oauth_login():
-                return False
+        print("🔄 Running OAuth browser login...")
+        if not self.run_oauth_login():
+            return False
 
         token = self.extract_token()
         if not token:
@@ -249,17 +261,23 @@ class DatabricksTokenSetup:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Databricks token authentication setup")
-    parser.add_argument("--refresh-token", action="store_true", help="Force OAuth browser login")
-    parser.add_argument("--test-connection", action="store_true", help="Test connection after setup")
+    parser.add_argument("--refresh-token", action="store_true", help="Force OAuth browser login and store token")
+    parser.add_argument("--test-connection", action="store_true", help="Test connection using current .env credentials")
     parser.add_argument("--workspace", type=Path, help="Workspace root (default: cwd)")
     args = parser.parse_args()
 
-    setup = DatabricksTokenSetup(workspace_root=args.workspace)
+    if not args.refresh_token and not args.test_connection:
+        parser.print_help()
+        return 0
 
-    success = setup.setup_token_auth(refresh_token=args.refresh_token)
+    setup = DatabricksTokenSetup(workspace_root=args.workspace)
+    success = True
+
+    if args.refresh_token:
+        success = setup.refresh_and_store_token()
 
     if success and args.test_connection:
-        setup.test_connection()
+        success = setup.test_connection()
 
     return 0 if success else 1
 
