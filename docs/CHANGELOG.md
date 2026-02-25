@@ -14,8 +14,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — SemVer.
 - Sample query patterns in `CLAUDE.md`: single query, multi-query client reuse, error handling
 - New project setup section in `CLAUDE.md` with full bootstrap commands
 - `pyproject.toml` build system (hatchling) with proper entry points
-- `personal` git remote pointing to local personal repo for offline sync
-- `carteakey` git remote pointing to personal GitHub for cloud sync
 
 ### Changed
 - Import style: `from databricks_eda import query_databricks` — no `sys.path` manipulation needed
