@@ -140,7 +140,13 @@ except ValueError as e:
 ### commit workflow
 1. Update `docs/CHANGELOG.md` — new entry under today's date, SemVer, `Added`/`Changed`/`Fixed`
 2. Update `docs/TODO.md` if you added or fixed something notable
-3. Commit and push
+3. Commit
+4. Push to all remotes:
+```bash
+git push origin main      # work GitHub
+git push personal main    # local personal repo (instant, offline)
+git push carteakey main   # personal GitHub
+```
 
 ---
 
