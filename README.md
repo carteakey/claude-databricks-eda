@@ -91,15 +91,32 @@ databricks-eda-setup --refresh-token
 df['col'] = pd.to_numeric(df['col'], errors='coerce')
 ```
 
-## Using as a Template
+## Starting a New EDA Project
+
+This repo acts as a shared library. New projects install from it — they don't copy the code.
 
 ```bash
-git clone <this-repo> my-new-project
-cd my-new-project
-rm -rf .git && git init
-cp .env.template .env
-# Edit .env, then: uv sync
+# 1. Create your project folder
+mkdir my-new-eda && cd my-new-eda
+
+# 2. Set up credentials
+cp ~/repos/eda/claude-databricks-eda/.env.template .env
+# Edit .env with your Databricks credentials
+
+# 3. Set up venv and install the package
+uv venv && source .venv/bin/activate
+uv pip install -e ~/repos/eda/claude-databricks-eda
+
+# 4. Authenticate
+databricks-eda-setup --refresh-token
+databricks-eda-setup --test-connection
+
+# 5. Copy the Claude instructions and scaffold notebooks
+cp ~/repos/eda/claude-databricks-eda/CLAUDE.md .
+mkdir -p notebooks/temp_code
 ```
+
+The `-e` (editable) install means any improvements to `databricks_eda` are immediately available in all your projects — no reinstall needed.
 
 ## MCP Server vs This Tool
 
