@@ -170,7 +170,6 @@ class DatabricksTokenSetup:
             return None
         finally:
             os.environ.update(saved)
-            return None
 
     # ------------------------------------------------------------------
     # .env file management
