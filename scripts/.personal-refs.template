@@ -1,0 +1,9 @@
+# Personal reference patterns — one per line, grep -iE regex syntax.
+# Copy this file to scripts/.personal-refs and fill in your own values.
+# scripts/.personal-refs is gitignored — never commit it.
+#
+# Examples:
+#   your-username
+#   your-org-name
+#   your-domain\.com
+#   your\.internal\.hostname

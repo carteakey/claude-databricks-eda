@@ -129,3 +129,9 @@ docs/.doctrees/
 
 # Mac
 ._*
+
+# GitHub CLI config (contains personal tokens/usernames)
+.config/
+
+# Personal reference patterns (gitignored — copy from scripts/.personal-refs.template)
+scripts/.personal-refs
