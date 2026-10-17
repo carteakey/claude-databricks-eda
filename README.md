@@ -2,6 +2,8 @@
 
 A template for doing Databricks EDA with Claude using the "volleying" workflow.
 
+> **Also here:** [`template/`](template) — the minimal, standalone starter version of this workflow (formerly [`databricks-eda-template`](https://github.com/carteakey/databricks-eda-template), now archived). Copy that folder to start a fresh EDA project.
+
 ## Quick Start
 
 ```bash
